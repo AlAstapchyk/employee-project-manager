@@ -1,0 +1,33 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Employee status enum
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+}
+
+/// Employee model — core entity for the WORKFLEX employee management system
+model Employee {
+  id         Int            @id @default(autoincrement())
+  firstName  String         @map("first_name")
+  lastName   String         @map("last_name")
+  position   String         // e.g. "Developer", "Designer", "Project Manager", "QA Analyst"
+  project    String         // project name the employee is currently assigned to
+  hourlyRate Float          @map("hourly_rate")
+  hoursWorked Float         @default(0) @map("hours_worked")
+  status     EmployeeStatus @default(ACTIVE)
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+
+  @@map("employees")
+}
