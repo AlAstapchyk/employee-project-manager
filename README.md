@@ -57,7 +57,7 @@ Built with **Next.js 16** (React 19) on the frontend, **NestJS 11** on the backe
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/<your-username>/employee-project-manager.git
+git clone https://github.com/AlAstapchyk/employee-project-manager.git
 cd employee-project-manager
 
 # 2. Copy environment template
@@ -121,9 +121,6 @@ npm run dev
 - **Soft Delete for Employees** — Implement a `deletedAt` field on the Employee model to preserve historical financial metrics.
 - **Full Project CRUD** — Add frontend and backend support to edit and delete database projects.
 - **Server-Side Pagination** — Add support for `?page=X&limit=Y` parameters to handle large datasets.
-
----
-
 - **End-to-End Test Suite** — Fully automated E2E tests using Playwright or Cypress.
 - **Authentication & Authorization** — Secure endpoints using JWT-based auth guards and roles (e.g. Admin, Manager).
 - **CI/CD Pipeline** — GitHub Actions configuration for linting, testing, and Docker builds.
