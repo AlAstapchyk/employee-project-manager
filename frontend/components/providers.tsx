@@ -25,9 +25,11 @@ export function Providers({ children }: { children: ReactNode }) {
         toastOptions={{
           duration: 3000,
           style: {
-            background: '#1e293b',
-            color: '#f1f5f9',
-            border: '1px solid #334155',
+            background: '#18181b',
+            color: '#fafafa',
+            border: '1px solid #27272a',
+            fontSize: '13px',
+            borderRadius: '8px',
           },
         }}
       />

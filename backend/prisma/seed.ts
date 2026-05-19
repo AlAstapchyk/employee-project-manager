@@ -1,6 +1,11 @@
 import { PrismaClient, EmployeeStatus } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 
-const prisma = new PrismaClient();
+const connectionString = process.env.DATABASE_URL;
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 const SEED_EMPLOYEES = [
   {
@@ -82,13 +87,28 @@ async function main() {
 
   // Clear existing data
   await prisma.employee.deleteMany();
+  await prisma.project.deleteMany();
+
+  // Unique projects from the seeded employees
+  const uniqueProjects = Array.from(
+    new Set(SEED_EMPLOYEES.map((emp) => emp.project)),
+  );
+
+  // Insert seed projects
+  for (const projName of uniqueProjects) {
+    await prisma.project.create({
+      data: { name: projName },
+    });
+  }
 
   // Insert seed data
   for (const employee of SEED_EMPLOYEES) {
     await prisma.employee.create({ data: employee });
   }
 
-  console.log(`✅ Seeded ${SEED_EMPLOYEES.length} employees.`);
+  console.log(
+    `✅ Seeded ${SEED_EMPLOYEES.length} employees and ${uniqueProjects.length} projects.`,
+  );
 }
 
 main()
@@ -98,4 +118,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await pool.end();
   });

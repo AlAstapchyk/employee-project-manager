@@ -13,7 +13,20 @@ export class EmployeesService {
     const where: Prisma.EmployeeWhereInput = {};
 
     if (filters.project) {
-      where.project = filters.project;
+      // Smart lookup: if project query parameter is a numeric ID, find the project name
+      const projectId = parseInt(filters.project, 10);
+      if (!isNaN(projectId)) {
+        const proj = await this.prisma.project.findUnique({
+          where: { id: projectId },
+        });
+        if (proj) {
+          where.project = proj.name;
+        } else {
+          where.project = filters.project;
+        }
+      } else {
+        where.project = filters.project;
+      }
     }
 
     if (filters.status) {
@@ -59,8 +72,21 @@ export class EmployeesService {
    * Returns total project cost = Σ (hourlyRate × hoursWorked) for all employees on the project
    */
   async getProjectSummary(project: string) {
+    let projectQueryName = project;
+
+    // Smart lookup: if project query parameter is a numeric ID, find the project name
+    const projectId = parseInt(project, 10);
+    if (!isNaN(projectId)) {
+      const proj = await this.prisma.project.findUnique({
+        where: { id: projectId },
+      });
+      if (proj) {
+        projectQueryName = proj.name;
+      }
+    }
+
     const employees = await this.prisma.employee.findMany({
-      where: { project },
+      where: { project: projectQueryName },
       select: {
         id: true,
         firstName: true,
@@ -80,7 +106,7 @@ export class EmployeesService {
     const totalHours = employees.reduce((sum, emp) => sum + emp.hoursWorked, 0);
 
     return {
-      project,
+      project: projectQueryName,
       employeeCount: employees.length,
       totalHours: Math.round(totalHours * 100) / 100,
       totalCost: Math.round(totalCost * 100) / 100,

@@ -4,6 +4,7 @@ import type {
   CreateEmployeeInput,
   UpdateEmployeeInput,
   ProjectSummary,
+  Project,
 } from './types';
 
 const API_BASE_URL =
@@ -62,5 +63,19 @@ export async function fetchProjectSummary(
   const { data } = await api.get<ProjectSummary>('/api/employees/summary', {
     params: { project },
   });
+  return data;
+}
+
+// ─── Projects API ────────────────────────────────────────────────────────────
+
+/** Fetch all projects */
+export async function fetchProjects(): Promise<Project[]> {
+  const { data } = await api.get<Project[]>('/api/projects');
+  return data;
+}
+
+/** Create a new project */
+export async function createProject(name: string): Promise<Project> {
+  const { data } = await api.post<Project>('/api/projects', { name });
   return data;
 }

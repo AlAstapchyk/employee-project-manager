@@ -20,6 +20,9 @@ RUN npx prisma generate
 # Compile the TypeScript code to NestJS production build
 RUN npm run build
 
+# Compile the Prisma seed script to JavaScript for production execution
+RUN npx tsc prisma/seed.ts --target es2020 --module commonjs --esModuleInterop --moduleResolution node
+
 # ==============================================================================
 # STAGE 2: Production Runtime
 # ==============================================================================
@@ -34,6 +37,10 @@ ENV NODE_ENV=production
 COPY package*.json ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./
+
+# Copy compiled seed.js from the builder stage to ensure clean production seeding
+COPY --from=builder /app/prisma/seed.js ./prisma/
+
 RUN npm ci --only=production
 RUN npx prisma generate
 
@@ -43,5 +50,5 @@ COPY --from=builder /app/dist ./dist
 # Expose the internal backend service port (resolved to BACKEND_PORT dynamically in compose)
 EXPOSE 5000
 
-# Start NestJS in production mode
-CMD ["node", "dist/main"]
+# Start NestJS after applying schema and seeding
+CMD npx prisma db push --accept-data-loss && npx prisma db seed && node dist/main

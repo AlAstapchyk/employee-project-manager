@@ -48,3 +48,10 @@ export interface ProjectSummary {
     cost: number;
   }[];
 }
+
+/** Project entity returned from the API */
+export interface Project {
+  id: number;
+  name: string;
+  createdAt: string;
+}

@@ -8,11 +8,7 @@ import {
   Min,
 } from 'class-validator';
 
-export enum EmployeeStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  ON_LEAVE = 'ON_LEAVE',
-}
+import { EmployeeStatus } from '@prisma/client';
 
 export class CreateEmployeeDto {
   @IsString()
