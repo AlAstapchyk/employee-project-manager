@@ -9,13 +9,20 @@ describe('EmployeesService', () => {
   let service: EmployeesService;
   let prisma: PrismaService;
 
+  const mockProject = {
+    id: 1,
+    name: 'ProjectA',
+    createdAt: new Date(),
+  };
+
   const mockEmployeeList = [
     {
       id: 1,
       firstName: 'Jan',
       lastName: 'Kowalski',
       position: 'Developer',
-      project: 'ProjectA',
+      projectId: 1,
+      project: mockProject,
       hourlyRate: 150.0,
       hoursWorked: 10.5,
       status: EmployeeStatus.ACTIVE,
@@ -27,7 +34,8 @@ describe('EmployeesService', () => {
       firstName: 'Anna',
       lastName: 'Nowak',
       position: 'QA',
-      project: 'ProjectA',
+      projectId: 1,
+      project: mockProject,
       hourlyRate: 100.0,
       hoursWorked: 20.0,
       status: EmployeeStatus.ON_LEAVE,
@@ -43,6 +51,9 @@ describe('EmployeesService', () => {
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+    },
+    project: {
+      findUnique: jest.fn().mockResolvedValue(mockProject),
     },
   };
 
@@ -71,14 +82,15 @@ describe('EmployeesService', () => {
 
   describe('findAll', () => {
     it('should call prisma.employee.findMany with correct parameters', async () => {
-      const filters = { project: 'ProjectA', status: 'ACTIVE' };
+      const filters = { project: '1', status: 'ACTIVE' };
       const result = await service.findAll(filters);
 
       expect(prisma.employee.findMany).toHaveBeenCalledWith({
         where: {
-          project: 'ProjectA',
+          projectId: 1,
           status: EmployeeStatus.ACTIVE,
         },
+        include: { project: true },
         orderBy: { createdAt: 'desc' },
       });
       expect(result).toEqual(mockEmployeeList);
@@ -89,6 +101,7 @@ describe('EmployeesService', () => {
 
       expect(prisma.employee.findMany).toHaveBeenCalledWith({
         where: {},
+        include: { project: true },
         orderBy: { createdAt: 'desc' },
       });
     });
@@ -103,6 +116,7 @@ describe('EmployeesService', () => {
 
       expect(prisma.employee.findUnique).toHaveBeenCalledWith({
         where: { id: 1 },
+        include: { project: true },
       });
       expect(result).toEqual(mockEmp);
     });
@@ -113,6 +127,7 @@ describe('EmployeesService', () => {
       await expect(service.findOne(99)).rejects.toThrow(NotFoundException);
       expect(prisma.employee.findUnique).toHaveBeenCalledWith({
         where: { id: 99 },
+        include: { project: true },
       });
     });
   });
@@ -123,7 +138,7 @@ describe('EmployeesService', () => {
         firstName: 'Tomasz',
         lastName: 'Wiśniewski',
         position: 'Designer',
-        project: 'ProjectB',
+        projectId: 1,
         hourlyRate: 120.0,
         hoursWorked: 0,
         status: EmployeeStatus.ACTIVE,
@@ -132,6 +147,7 @@ describe('EmployeesService', () => {
       const createdEmp = {
         id: 3,
         ...createDto,
+        project: mockProject,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -139,7 +155,10 @@ describe('EmployeesService', () => {
 
       const result = await service.create(createDto);
 
-      expect(prisma.employee.create).toHaveBeenCalledWith({ data: createDto });
+      expect(prisma.employee.create).toHaveBeenCalledWith({
+        data: createDto,
+        include: { project: true },
+      });
       expect(result).toEqual(createdEmp);
     });
   });
@@ -160,6 +179,7 @@ describe('EmployeesService', () => {
       expect(prisma.employee.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: updateDto,
+        include: { project: true },
       });
       expect(result).toEqual(updatedEmp);
     });
@@ -174,13 +194,16 @@ describe('EmployeesService', () => {
       const result = await service.remove(1);
 
       expect(service.findOne).toHaveBeenCalledWith(1);
-      expect(prisma.employee.delete).toHaveBeenCalledWith({ where: { id: 1 } });
+      expect(prisma.employee.delete).toHaveBeenCalledWith({
+        where: { id: 1 },
+        include: { project: true },
+      });
       expect(result).toEqual(mockEmp);
     });
   });
 
   describe('getProjectSummary', () => {
-    it('should return aggregated cost summary for a given project', async () => {
+    it('should return aggregated cost summary for a given project ID', async () => {
       // Sum of (hourlyRate * hoursWorked) for mockEmployeeList:
       // Jan: 150 * 10.5 = 1575
       // Anna: 100 * 20 = 2000
@@ -190,10 +213,14 @@ describe('EmployeesService', () => {
         .spyOn(prisma.employee, 'findMany')
         .mockResolvedValue(mockEmployeeList);
 
-      const result = await service.getProjectSummary('ProjectA');
+      const result = await service.getProjectSummary('1');
+
+      expect(prisma.project.findUnique).toHaveBeenCalledWith({
+        where: { id: 1 },
+      });
 
       expect(prisma.employee.findMany).toHaveBeenCalledWith({
-        where: { project: 'ProjectA' },
+        where: { projectId: 1 },
         select: {
           id: true,
           firstName: true,
@@ -234,10 +261,10 @@ describe('EmployeesService', () => {
     it('should return empty summary if no employees are on the project', async () => {
       jest.spyOn(prisma.employee, 'findMany').mockResolvedValue([]);
 
-      const result = await service.getProjectSummary('NonExistentProject');
+      const result = await service.getProjectSummary('1');
 
       expect(result).toEqual({
-        project: 'NonExistentProject',
+        project: 'ProjectA',
         employeeCount: 0,
         totalHours: 0,
         totalCost: 0,

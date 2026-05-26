@@ -11,7 +11,8 @@ export interface Employee {
   firstName: string;
   lastName: string;
   position: string;
-  project: string;
+  projectId: number;
+  project: Project;
   hourlyRate: number;
   hoursWorked: number;
   status: EmployeeStatus;
@@ -24,7 +25,7 @@ export interface CreateEmployeeInput {
   firstName: string;
   lastName: string;
   position: string;
-  project: string;
+  projectId: number;
   hourlyRate: number;
   hoursWorked?: number;
   status?: EmployeeStatus;

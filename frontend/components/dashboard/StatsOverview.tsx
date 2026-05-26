@@ -7,13 +7,13 @@ interface StatsOverviewProps {
     totalHours: number;
     employeeCount: number;
   };
-  selectedProject: string;
+  selectedProjectName: string;
   isLoading?: boolean;
 }
 
 export function StatsOverview({
   displayStats,
-  selectedProject,
+  selectedProjectName,
   isLoading = false,
 }: StatsOverviewProps) {
   return (
@@ -39,9 +39,9 @@ export function StatsOverview({
             </div>
           )}
           <p className="text-muted-foreground text-xs mt-1">
-            {selectedProject === 'ALL'
+            {selectedProjectName === 'ALL'
               ? 'Suma stawek × przepracowane godziny (wszystkie projekty)'
-              : `Wydany budżet dla projektu: ${selectedProject}`}
+              : `Wydany budżet dla projektu: ${selectedProjectName}`}
           </p>
         </CardContent>
       </Card>
@@ -87,7 +87,9 @@ export function StatsOverview({
             </div>
           )}
           <p className="text-muted-foreground text-xs mt-1">
-            Zatrudnieni specjaliści przypisani do wyszukiwania.
+            {selectedProjectName === 'ALL'
+              ? 'Zatrudnieni specjaliści zarejestrowani w systemie.'
+              : `Zatrudnieni specjaliści przypisani do projektu: ${selectedProjectName}.`}
           </p>
         </CardContent>
       </Card>

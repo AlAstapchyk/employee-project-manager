@@ -18,24 +18,26 @@ enum EmployeeStatus {
 
 /// Employee model — core entity for the WORKFLEX employee management system
 model Employee {
-  id         Int            @id @default(autoincrement())
-  firstName  String         @map("first_name")
-  lastName   String         @map("last_name")
-  position   String         // e.g. "Developer", "Designer", "Project Manager", "QA Analyst"
-  project    String         // project name the employee is currently assigned to
-  hourlyRate Float          @map("hourly_rate")
-  hoursWorked Float         @default(0) @map("hours_worked")
-  status     EmployeeStatus @default(ACTIVE)
-  createdAt  DateTime       @default(now()) @map("created_at")
-  updatedAt  DateTime       @updatedAt @map("updated_at")
+  id          Int            @id @default(autoincrement())
+  firstName   String         @map("first_name")
+  lastName    String         @map("last_name")
+  position    String         // e.g. "Developer", "Designer", "Project Manager", "QA Analyst"
+  projectId   Int            @map("project_id")
+  project     Project        @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  hourlyRate  Float          @map("hourly_rate")
+  hoursWorked Float          @default(0) @map("hours_worked")
+  status      EmployeeStatus @default(ACTIVE)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
 
   @@map("employees")
 }
 
 model Project {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  createdAt DateTime @default(now()) @map("created_at")
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  employees Employee[]
+  createdAt DateTime   @default(now()) @map("created_at")
 
   @@map("projects")
 }

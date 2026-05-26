@@ -20,12 +20,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { EmployeeStatus } from '@/lib/types';
-import type { CreateEmployeeInput } from '@/lib/types';
+import type { CreateEmployeeInput, Project } from '@/lib/types';
 
 interface AddEmployeeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  projectList: string[];
+  projectList: Project[];
   onSubmit: (inputs: CreateEmployeeInput) => void;
   isPending: boolean;
 }
@@ -41,7 +41,7 @@ export function AddEmployeeDialog({
     firstName: '',
     lastName: '',
     position: '',
-    project: '',
+    projectId: 0,
     hourlyRate: 0,
     hoursWorked: 0,
     status: EmployeeStatus.ACTIVE,
@@ -61,7 +61,7 @@ export function AddEmployeeDialog({
     value: CreateEmployeeInput[keyof CreateEmployeeInput],
   ) => {
     setFormInputs((prev) => ({ ...prev, [field]: value }));
-    const errorKey = field as keyof typeof errors;
+    const errorKey = (field === 'projectId' ? 'project' : field) as keyof typeof errors;
     if (errors[errorKey]) {
       setErrors((prev) => ({ ...prev, [errorKey]: undefined }));
     }
@@ -74,7 +74,7 @@ export function AddEmployeeDialog({
     if (!formInputs.firstName.trim()) newErrors.firstName = 'Imię jest wymagane';
     if (!formInputs.lastName.trim()) newErrors.lastName = 'Nazwisko jest wymagane';
     if (!formInputs.position.trim()) newErrors.position = 'Stanowisko jest wymagane';
-    if (!formInputs.project.trim()) newErrors.project = 'Projekt jest wymagany';
+    if (formInputs.projectId <= 0) newErrors.project = 'Projekt jest wymagany';
     if (formInputs.hourlyRate <= 0) newErrors.hourlyRate = 'Stawka musi być większa od 0';
     if ((formInputs.hoursWorked ?? 0) < 0) newErrors.hoursWorked = 'Godziny nie mogą być ujemne';
 
@@ -86,6 +86,8 @@ export function AddEmployeeDialog({
 
     onSubmit(formInputs);
   };
+
+  const selectedProjName = projectList.find((p) => p.id === formInputs.projectId)?.name;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -111,9 +113,8 @@ export function AddEmployeeDialog({
                 placeholder="np. Jan"
                 value={formInputs.firstName}
                 onChange={(e) => handleInputChange('firstName', e.target.value)}
-                className={`bg-background h-9 text-xs transition-colors ${
-                  errors.firstName ? 'border-destructive ring-destructive ring-1 focus-visible:ring-destructive' : ''
-                }`}
+                className={`bg-background h-9 text-xs transition-colors ${errors.firstName ? 'border-destructive ring-destructive ring-1 focus-visible:ring-destructive' : ''
+                  }`}
               />
               {errors.firstName && (
                 <span className="text-[10px] text-destructive font-medium block mt-0.5 animate-fade-in">
@@ -132,9 +133,8 @@ export function AddEmployeeDialog({
                 placeholder="np. Kowalski"
                 value={formInputs.lastName}
                 onChange={(e) => handleInputChange('lastName', e.target.value)}
-                className={`bg-background h-9 text-xs transition-colors ${
-                  errors.lastName ? 'border-destructive ring-destructive ring-1 focus-visible:ring-destructive' : ''
-                }`}
+                className={`bg-background h-9 text-xs transition-colors ${errors.lastName ? 'border-destructive ring-destructive ring-1 focus-visible:ring-destructive' : ''
+                  }`}
               />
               {errors.lastName && (
                 <span className="text-[10px] text-destructive font-medium block mt-0.5 animate-fade-in">
@@ -154,9 +154,8 @@ export function AddEmployeeDialog({
               placeholder="np. Senior Frontend Developer"
               value={formInputs.position}
               onChange={(e) => handleInputChange('position', e.target.value)}
-              className={`bg-background h-9 text-xs transition-colors ${
-                errors.position ? 'border-destructive ring-destructive ring-1 focus-visible:ring-destructive' : ''
-              }`}
+              className={`bg-background h-9 text-xs transition-colors ${errors.position ? 'border-destructive ring-destructive ring-1 focus-visible:ring-destructive' : ''
+                }`}
             />
             {errors.position && (
               <span className="text-[10px] text-destructive font-medium block mt-0.5 animate-fade-in">
@@ -171,17 +170,16 @@ export function AddEmployeeDialog({
               Projekt
             </Label>
             <Select
-              value={formInputs.project}
-              onValueChange={(val) => handleInputChange('project', val ?? '')}
+              value={formInputs.projectId ? String(formInputs.projectId) : ''}
+              onValueChange={(val) => handleInputChange('projectId', parseInt(val || '', 10) || 0)}
             >
               <SelectTrigger
                 id="project"
-                className={`w-full bg-background text-xs h-9! cursor-pointer transition-colors ${
-                  errors.project ? 'border-destructive ring-destructive ring-1 focus:ring-destructive' : ''
-                }`}
+                className={`w-full bg-background text-xs !h-9 cursor-pointer transition-colors ${errors.project ? 'border-destructive ring-destructive ring-1 focus:ring-destructive' : ''
+                  }`}
               >
                 <SelectValue placeholder="Wybierz projekt">
-                  {formInputs.project || 'Wybierz projekt'}
+                  {selectedProjName || 'Wybierz projekt'}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -189,8 +187,8 @@ export function AddEmployeeDialog({
                   <SelectItem value="" disabled>Brak projektów. Dodaj nowy!</SelectItem>
                 ) : (
                   projectList.map((proj) => (
-                    <SelectItem key={proj} value={proj} className="cursor-pointer">
-                      {proj}
+                    <SelectItem key={proj.id} value={String(proj.id)} className="cursor-pointer">
+                      {proj.name}
                     </SelectItem>
                   ))
                 )}
@@ -215,9 +213,8 @@ export function AddEmployeeDialog({
                 placeholder="np. 150"
                 value={formInputs.hourlyRate || ''}
                 onChange={(e) => handleInputChange('hourlyRate', parseFloat(e.target.value) || 0)}
-                className={`bg-background h-9 text-xs transition-colors ${
-                  errors.hourlyRate ? 'border-destructive ring-destructive ring-1 focus-visible:ring-destructive' : ''
-                }`}
+                className={`bg-background h-9 text-xs transition-colors ${errors.hourlyRate ? 'border-destructive ring-destructive ring-1 focus-visible:ring-destructive' : ''
+                  }`}
               />
               {errors.hourlyRate && (
                 <span className="text-[10px] text-destructive font-medium block mt-0.5 animate-fade-in">
@@ -237,9 +234,8 @@ export function AddEmployeeDialog({
                 placeholder="np. 160"
                 value={formInputs.hoursWorked || ''}
                 onChange={(e) => handleInputChange('hoursWorked', parseFloat(e.target.value) || 0)}
-                className={`bg-background h-9 text-xs transition-colors ${
-                  errors.hoursWorked ? 'border-destructive ring-destructive ring-1 focus-visible:ring-destructive' : ''
-                }`}
+                className={`bg-background h-9 text-xs transition-colors ${errors.hoursWorked ? 'border-destructive ring-destructive ring-1 focus-visible:ring-destructive' : ''
+                  }`}
               />
               {errors.hoursWorked && (
                 <span className="text-[10px] text-destructive font-medium block mt-0.5 animate-fade-in">
@@ -261,8 +257,8 @@ export function AddEmployeeDialog({
                   {formInputs.status === EmployeeStatus.ACTIVE
                     ? 'Aktywny'
                     : formInputs.status === EmployeeStatus.ON_LEAVE
-                    ? 'Na urlopie'
-                    : 'Nieaktywny'}
+                      ? 'Na urlopie'
+                      : 'Nieaktywny'}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>

@@ -7,6 +7,8 @@ export const metadata = {
   description: 'System zarządzania zasobami i kosztami projektowymi Workflex.',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function Page() {
   let initialEmployees: Employee[] | undefined = undefined;
   let initialProjects: Project[] | undefined = undefined;

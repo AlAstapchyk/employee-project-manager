@@ -20,13 +20,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { EmployeeStatus } from '@/lib/types';
-import type { Employee, CreateEmployeeInput } from '@/lib/types';
+import type { Employee, CreateEmployeeInput, Project } from '@/lib/types';
 
 interface EditEmployeeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   employee: Employee;
-  projectList: string[];
+  projectList: Project[];
   onSubmit: (inputs: CreateEmployeeInput) => void;
   isPending: boolean;
 }
@@ -43,7 +43,7 @@ export function EditEmployeeDialog({
     firstName: employee.firstName,
     lastName: employee.lastName,
     position: employee.position,
-    project: employee.project,
+    projectId: employee.projectId,
     hourlyRate: employee.hourlyRate,
     hoursWorked: employee.hoursWorked,
     status: employee.status,
@@ -63,7 +63,7 @@ export function EditEmployeeDialog({
     value: CreateEmployeeInput[keyof CreateEmployeeInput],
   ) => {
     setFormInputs((prev) => ({ ...prev, [field]: value }));
-    const errorKey = field as keyof typeof errors;
+    const errorKey = (field === 'projectId' ? 'project' : field) as keyof typeof errors;
     if (errors[errorKey]) {
       setErrors((prev) => ({ ...prev, [errorKey]: undefined }));
     }
@@ -76,7 +76,7 @@ export function EditEmployeeDialog({
     if (!formInputs.firstName.trim()) newErrors.firstName = 'Imię jest wymagane';
     if (!formInputs.lastName.trim()) newErrors.lastName = 'Nazwisko jest wymagane';
     if (!formInputs.position.trim()) newErrors.position = 'Stanowisko jest wymagane';
-    if (!formInputs.project.trim()) newErrors.project = 'Projekt jest wymagany';
+    if (formInputs.projectId <= 0) newErrors.project = 'Projekt jest wymagany';
     if (formInputs.hourlyRate <= 0) newErrors.hourlyRate = 'Stawka musi być większa od 0';
     if ((formInputs.hoursWorked ?? 0) < 0) newErrors.hoursWorked = 'Godziny nie mogą być ujemne';
 
@@ -88,6 +88,8 @@ export function EditEmployeeDialog({
 
     onSubmit(formInputs);
   };
+
+  const selectedProjName = projectList.find((p) => p.id === formInputs.projectId)?.name;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -170,17 +172,17 @@ export function EditEmployeeDialog({
               Projekt
             </Label>
             <Select
-              value={formInputs.project}
-              onValueChange={(val) => handleInputChange('project', val ?? '')}
+              value={formInputs.projectId ? String(formInputs.projectId) : ''}
+              onValueChange={(val) => handleInputChange('projectId', parseInt(val || '', 10) || 0)}
             >
               <SelectTrigger
                 id="edit-project"
-                className={`w-full bg-background text-xs h-9! cursor-pointer transition-colors ${
+                className={`w-full bg-background text-xs !h-9 cursor-pointer transition-colors ${
                   errors.project ? 'border-destructive ring-destructive ring-1 focus:ring-destructive' : ''
                 }`}
               >
                 <SelectValue placeholder="Wybierz projekt">
-                  {formInputs.project || 'Wybierz projekt'}
+                  {selectedProjName || 'Wybierz projekt'}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -188,8 +190,8 @@ export function EditEmployeeDialog({
                   <SelectItem value="" disabled>Brak projektów. Dodaj nowy!</SelectItem>
                 ) : (
                   projectList.map((proj) => (
-                    <SelectItem key={proj} value={proj} className="cursor-pointer">
-                      {proj}
+                    <SelectItem key={proj.id} value={String(proj.id)} className="cursor-pointer">
+                      {proj.name}
                     </SelectItem>
                   ))
                 )}
@@ -253,7 +255,7 @@ export function EditEmployeeDialog({
               value={formInputs.status}
               onValueChange={(val) => handleInputChange('status', val ?? EmployeeStatus.ACTIVE)}
             >
-              <SelectTrigger className="w-full bg-background text-xs h-9! cursor-pointer">
+              <SelectTrigger className="w-full bg-background text-xs !h-9 cursor-pointer">
                 <SelectValue>
                   {formInputs.status === EmployeeStatus.ACTIVE
                     ? 'Aktywny'

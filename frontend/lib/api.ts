@@ -7,8 +7,11 @@ import type {
   Project,
 } from './types';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000';
+const IS_SERVER = typeof window === 'undefined';
+
+const API_BASE_URL = IS_SERVER
+  ? (process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:5000')
+  : (process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:5000');
 
 /** Configured axios instance pointing to the backend */
 export const api = axios.create({
@@ -58,10 +61,10 @@ export async function deleteEmployee(id: number): Promise<Employee> {
 
 /** Get project cost summary */
 export async function fetchProjectSummary(
-  project: string,
+  project: string | number,
 ): Promise<ProjectSummary> {
   const { data } = await api.get<ProjectSummary>('/api/employees/summary', {
-    params: { project },
+    params: { project: String(project) },
   });
   return data;
 }

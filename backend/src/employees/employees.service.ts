@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
-import { Prisma, EmployeeStatus } from '@prisma/client';
+import { Prisma, EmployeeStatus, Project } from '@prisma/client';
 
 @Injectable()
 export class EmployeesService {
@@ -13,19 +13,9 @@ export class EmployeesService {
     const where: Prisma.EmployeeWhereInput = {};
 
     if (filters.project) {
-      // Smart lookup: if project query parameter is a numeric ID, find the project name
       const projectId = parseInt(filters.project, 10);
       if (!isNaN(projectId)) {
-        const proj = await this.prisma.project.findUnique({
-          where: { id: projectId },
-        });
-        if (proj) {
-          where.project = proj.name;
-        } else {
-          where.project = filters.project;
-        }
-      } else {
-        where.project = filters.project;
+        where.projectId = projectId;
       }
     }
 
@@ -35,13 +25,17 @@ export class EmployeesService {
 
     return this.prisma.employee.findMany({
       where,
+      include: { project: true },
       orderBy: { createdAt: 'desc' },
     });
   }
 
   /** Get a single employee by ID */
   async findOne(id: number) {
-    const employee = await this.prisma.employee.findUnique({ where: { id } });
+    const employee = await this.prisma.employee.findUnique({
+      where: { id },
+      include: { project: true },
+    });
 
     if (!employee) {
       throw new NotFoundException(`Employee with ID ${id} not found`);
@@ -52,19 +46,29 @@ export class EmployeesService {
 
   /** Create a new employee */
   async create(dto: CreateEmployeeDto) {
-    return this.prisma.employee.create({ data: dto });
+    return this.prisma.employee.create({
+      data: dto,
+      include: { project: true },
+    });
   }
 
   /** Update an existing employee */
   async update(id: number, dto: UpdateEmployeeDto) {
     await this.findOne(id); // throws NotFoundException if not found
-    return this.prisma.employee.update({ where: { id }, data: dto });
+    return this.prisma.employee.update({
+      where: { id },
+      data: dto,
+      include: { project: true },
+    });
   }
 
   /** Delete an employee */
   async remove(id: number) {
     await this.findOne(id); // throws NotFoundException if not found
-    return this.prisma.employee.delete({ where: { id } });
+    return this.prisma.employee.delete({
+      where: { id },
+      include: { project: true },
+    });
   }
 
   /**
@@ -72,21 +76,24 @@ export class EmployeesService {
    * Returns total project cost = Σ (hourlyRate × hoursWorked) for all employees on the project
    */
   async getProjectSummary(project: string) {
-    let projectQueryName = project;
-
-    // Smart lookup: if project query parameter is a numeric ID, find the project name
+    let projectRecord: Project | null = null;
     const projectId = parseInt(project, 10);
     if (!isNaN(projectId)) {
-      const proj = await this.prisma.project.findUnique({
+      projectRecord = await this.prisma.project.findUnique({
         where: { id: projectId },
       });
-      if (proj) {
-        projectQueryName = proj.name;
-      }
+    } else {
+      projectRecord = await this.prisma.project.findUnique({
+        where: { name: project },
+      });
+    }
+
+    if (!projectRecord) {
+      throw new NotFoundException(`Project with ID or Name "${project}" not found`);
     }
 
     const employees = await this.prisma.employee.findMany({
-      where: { project: projectQueryName },
+      where: { projectId: projectRecord.id },
       select: {
         id: true,
         firstName: true,
@@ -106,7 +113,7 @@ export class EmployeesService {
     const totalHours = employees.reduce((sum, emp) => sum + emp.hoursWorked, 0);
 
     return {
-      project: projectQueryName,
+      project: projectRecord.name,
       employeeCount: employees.length,
       totalHours: Math.round(totalHours * 100) / 100,
       totalCost: Math.round(totalCost * 100) / 100,

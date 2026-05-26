@@ -89,25 +89,43 @@ async function main() {
   await prisma.employee.deleteMany();
   await prisma.project.deleteMany();
 
-  // Unique projects from the seeded employees
-  const uniqueProjects = Array.from(
+  // Unique project names from the seeded employees
+  const uniqueProjectNames = Array.from(
     new Set(SEED_EMPLOYEES.map((emp) => emp.project)),
   );
 
-  // Insert seed projects
-  for (const projName of uniqueProjects) {
-    await prisma.project.create({
+  // Insert seed projects and collect them
+  const createdProjects: { id: number; name: string }[] = [];
+  for (const projName of uniqueProjectNames) {
+    const proj = await prisma.project.create({
       data: { name: projName },
+    });
+    createdProjects.push(proj);
+  }
+
+  // Insert seed data linked to projects
+  for (const employee of SEED_EMPLOYEES) {
+    const projectRecord = createdProjects.find(
+      (p) => p.name === employee.project,
+    );
+    if (!projectRecord) {
+      throw new Error(
+        `Project ${employee.project} not found in created projects.`,
+      );
+    }
+
+    // Omit loose project string and inject relational projectId
+    const { project, ...employeeData } = employee;
+    await prisma.employee.create({
+      data: {
+        ...employeeData,
+        projectId: projectRecord.id,
+      },
     });
   }
 
-  // Insert seed data
-  for (const employee of SEED_EMPLOYEES) {
-    await prisma.employee.create({ data: employee });
-  }
-
   console.log(
-    `✅ Seeded ${SEED_EMPLOYEES.length} employees and ${uniqueProjects.length} projects.`,
+    `✅ Seeded ${SEED_EMPLOYEES.length} employees and ${uniqueProjectNames.length} projects.`,
   );
 }
 

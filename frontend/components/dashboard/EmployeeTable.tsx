@@ -82,7 +82,7 @@ export function EmployeeTable({
               </TableCell>
               <TableCell className="text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5 text-xs font-medium">
-                  <Building className="size-3 text-muted-foreground" /> {emp.project}
+                  <Building className="size-3 text-muted-foreground" /> {emp.project.name}
                 </span>
               </TableCell>
               <TableCell className="text-right text-muted-foreground text-xs font-mono">

@@ -68,7 +68,7 @@ export function DashboardClient({
   const [isAddProjectOpen, setIsAddProjectOpen] = useState(false);
 
   // ─── Fetch Queries ─────────────────────────────────────────────────────────
-  // Fetch ALL employees first to extract dynamic project names
+  // Fetch ALL employees first to extractdynamic project statistics in the background
   const { data: allEmployees = [], isLoading: isLoadingAll } = useQuery<Employee[]>({
     queryKey: ['employees', 'all'],
     queryFn: () => fetchEmployees(),
@@ -81,14 +81,6 @@ export function DashboardClient({
     queryFn: fetchProjects,
     initialData: initialProjects,
   });
-
-  // Merge database projects and active employee projects dynamically
-  const projectList = Array.from(
-    new Set([
-      ...dbProjects.map((p) => p.name),
-      ...allEmployees.map((emp) => emp.project).filter(Boolean),
-    ])
-  ).sort();
 
   // Fetch filtered list for display
   const { data: employees = [], isLoading: isLoadingFiltered } = useQuery<Employee[]>({
@@ -211,6 +203,10 @@ export function DashboardClient({
     setIsDeleteOpen(true);
   };
 
+  // Find selected project details for statistics label
+  const selectedProjRecord = dbProjects.find((p) => String(p.id) === selectedProject);
+  const selectedProjectName = selectedProjRecord ? selectedProjRecord.name : 'ALL';
+
   // ─── Dynamic Stats Calculation (For Global Summary or Selected Project) ────
   const displayStats = selectedProject !== 'ALL' && projectSummary
     ? {
@@ -228,7 +224,7 @@ export function DashboardClient({
   const filteredEmployees = employees.filter((emp) => {
     const fullName = `${emp.firstName} ${emp.lastName}`.toLowerCase();
     const pos = emp.position.toLowerCase();
-    const proj = emp.project.toLowerCase();
+    const proj = emp.project.name.toLowerCase();
     const query = searchQuery.toLowerCase();
     return fullName.includes(query) || pos.includes(query) || proj.includes(query);
   });
@@ -259,8 +255,8 @@ export function DashboardClient({
             <Button
               onClick={handleRefresh}
               variant="outline"
-              size="icon-sm"
-              className="text-muted-foreground hover:text-foreground h-9 w-9 flex items-center justify-center rounded-lg cursor-pointer"
+              size="icon-lg"
+              className="text-muted-foreground hover:text-foreground flex items-center justify-center rounded-lg cursor-pointer animate-none"
               title="Odśwież wszystkie dane"
             >
               <RefreshCw className="size-4" />
@@ -284,7 +280,7 @@ export function DashboardClient({
         {/* Aggregated KPI Cards Section */}
         <StatsOverview
           displayStats={displayStats}
-          selectedProject={selectedProject}
+          selectedProjectName={selectedProjectName}
           isLoading={isStatsLoading}
         />
 
@@ -326,14 +322,14 @@ export function DashboardClient({
                 <Select value={selectedProject} onValueChange={(val) => setSelectedProject(val ?? 'ALL')}>
                   <SelectTrigger className="w-44 text-xs bg-background !h-9 cursor-pointer">
                     <SelectValue>
-                      {selectedProject === 'ALL' ? 'Wszystkie projekty' : selectedProject}
+                      {selectedProject === 'ALL' ? 'Wszystkie projekty' : selectedProjectName}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL" className="cursor-pointer">Wszystkie projekty</SelectItem>
-                    {projectList.map((proj) => (
-                      <SelectItem key={proj} value={proj} className="cursor-pointer">
-                        {proj}
+                    {dbProjects.map((proj) => (
+                      <SelectItem key={proj.id} value={String(proj.id)} className="cursor-pointer">
+                        {proj.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -344,7 +340,7 @@ export function DashboardClient({
                   <SelectTrigger className="w-36 text-xs bg-background !h-9 cursor-pointer">
                     <SelectValue>
                       {selectedStatus === 'ALL'
-                        ? 'Wszyscy statusy'
+                        ? 'Wszystkie statusy'
                         : selectedStatus === EmployeeStatus.ACTIVE
                         ? 'Aktywny'
                         : selectedStatus === EmployeeStatus.ON_LEAVE
@@ -353,7 +349,7 @@ export function DashboardClient({
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ALL" className="cursor-pointer">Wszyscy statusy</SelectItem>
+                    <SelectItem value="ALL" className="cursor-pointer">Wszystkie statusy</SelectItem>
                     <SelectItem value={EmployeeStatus.ACTIVE} className="cursor-pointer">Aktywny</SelectItem>
                     <SelectItem value={EmployeeStatus.ON_LEAVE} className="cursor-pointer">Na urlopie</SelectItem>
                     <SelectItem value={EmployeeStatus.INACTIVE} className="cursor-pointer">Nieaktywny</SelectItem>
@@ -380,7 +376,7 @@ export function DashboardClient({
         <AddEmployeeDialog
           open={isAddOpen}
           onOpenChange={setIsAddOpen}
-          projectList={projectList}
+          projectList={dbProjects}
           onSubmit={handleCreateEmployee}
           isPending={createMutation.isPending}
         />
@@ -391,7 +387,7 @@ export function DashboardClient({
           open={isEditOpen}
           onOpenChange={setIsEditOpen}
           employee={selectedEmployee}
-          projectList={projectList}
+          projectList={dbProjects}
           onSubmit={handleUpdateEmployee}
           isPending={updateMutation.isPending}
         />
